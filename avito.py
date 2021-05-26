@@ -49,8 +49,26 @@ while True:
         break
     except:
         driver.refresh()
-driver.close()
 data=f(data)
+for i in range(len(data)):
+    while True:
+        try:
+            print(i)
+            driver.get(data[i][0])
+            try:
+                driver.find_element_by_css_selector('span[data-map-type="item-closed-warning__content"]')
+                driver.save_screenshot(f"screenshot/{i}.png")
+                data[i].extend([f"screenshot/{i}.png", "Объявление снято с публикации", "Объявление снято с публикации"])
+            except:
+                driver.save_screenshot(f"screenshot/{i}.png")
+                lat = driver.find_element_by_css_selector('div[data-map-type="dynamic"]').get_attribute("data-map-lat")
+                lon = driver.find_element_by_css_selector('div[data-map-type="dynamic"]').get_attribute("data-map-lon")
+                data[i].extend([f"screenshot/{i}.png", lat, lon])
+
+            break
+        except:
+            pass
+driver.close()
 with open(path, "w", encoding="utf-8") as file:
     for i in data:
-        file.write(f'{i[0]}|{i[1]}|{i[2]}|{i[3]}\n')
+        file.write(f'{i[0]}|{i[1]}|{i[2]}|{i[3]}|{i[4]}|{i[5]}|{i[6]}\n')
