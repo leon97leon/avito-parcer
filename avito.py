@@ -3,8 +3,14 @@ from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import pyodbc
 path = "output.csv"
-
+def find(driver,css):
+    try:
+        driver.find_element_by_css_selector(str(css))
+        return 1
+    except:
+        return 0
 def f(l):
     n = []
     for i in l:
@@ -28,6 +34,7 @@ def pars(driver):
             print(str(e))
     return data
 driver = webdriver.Chrome()
+driver.set_page_load_timeout(60)
 driver.get("https://www.avito.ru/chechenskaya_respublika/zemelnye_uchastki/prodam/izhs")
 
 data = pars(driver)
@@ -39,7 +46,7 @@ data = pars(driver)
 while True:
     try:
         while driver.find_element_by_css_selector('span[data-marker="pagination-button/next"]').get_attribute("class").find("readonly") == -1:
-        #for i in range(3):
+        #for i in range(1):
             button_next = driver.find_element_by_css_selector('span[data-marker="pagination-button/next"]')
             button_next.click()
             #driver.implicitly_wait(2)
@@ -55,16 +62,14 @@ for i in range(len(data)):
         try:
             print(i)
             driver.get(data[i][0])
-            try:
-                driver.find_element_by_css_selector('span[data-map-type="item-closed-warning__content"]')
+            if find(driver,'a[class="item-closed-warning"]') == 1 or find(driver,'div[class="item-view-warning-content"]') == 1:
                 driver.save_screenshot(f"screenshot/{i}.png")
                 data[i].extend([f"screenshot/{i}.png", "Объявление снято с публикации", "Объявление снято с публикации"])
-            except:
+            else:
                 driver.save_screenshot(f"screenshot/{i}.png")
                 lat = driver.find_element_by_css_selector('div[data-map-type="dynamic"]').get_attribute("data-map-lat")
                 lon = driver.find_element_by_css_selector('div[data-map-type="dynamic"]').get_attribute("data-map-lon")
                 data[i].extend([f"screenshot/{i}.png", lat, lon])
-
             break
         except:
             pass
@@ -72,3 +77,37 @@ driver.close()
 with open(path, "w", encoding="utf-8") as file:
     for i in data:
         file.write(f'{i[0]}|{i[1]}|{i[2]}|{i[3]}|{i[4]}|{i[5]}|{i[6]}\n')
+conn = pyodbc.connect('DRIVER={SQL Server};SERVER=localhost\SQLEXPRESS01;DATABASE=avito;Trusted_Connection=yes')
+cursor = conn.cursor()
+
+query1 = """
+        CREATE TABLE avito(
+            "URL" varchar(255),
+            "Название" varchar(255),
+            "Цена" varchar(255),
+            "Адрес" varchar(255),
+            "Скриншот" varchar(255),
+            "Широта" varchar(255),
+            "Долгота" varchar(255)
+        )"""
+query = """
+        INSERT INTO avito (
+            "URL",
+            "Название",
+            "Цена",
+            "Адрес",
+            "Скриншот",
+            "Широта",
+            "Долгота"
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)"""
+try:
+    cursor.execute(query1)
+    conn.commit()
+except pyodbc.ProgrammingError:
+    pass
+cursor.execute("TRUNCATE TABLE avito")
+cursor.execute("SELECT count(*) FROM avito")
+for r in data:
+    cursor.execute(query, tuple(r))
+conn.commit()
+conn.close()
