@@ -33,9 +33,12 @@ def pars(driver):
         except Exception as e:
             print(str(e))
     return data
+url=input("Введите url для парсинга:")
+server=input("Введите сервер базы данных:")
+name=input("Введите имя базы данных:")
 driver = webdriver.Chrome()
 driver.set_page_load_timeout(60)
-driver.get("https://www.avito.ru/chechenskaya_respublika/zemelnye_uchastki/prodam/izhs")
+driver.get(url)
 
 data = pars(driver)
 #for i in range(len(data)):
@@ -77,7 +80,9 @@ driver.close()
 with open(path, "w", encoding="utf-8") as file:
     for i in data:
         file.write(f'{i[0]}|{i[1]}|{i[2]}|{i[3]}|{i[4]}|{i[5]}|{i[6]}\n')
-conn = pyodbc.connect('DRIVER={SQL Server};SERVER=localhost\SQLEXPRESS01;DATABASE=avito;Trusted_Connection=yes')
+#conn = pyodbc.connect('DRIVER={SQL Server};SERVER=localhost\SQLEXPRESS01;DATABASE=avito;Trusted_Connection=yes')
+conn = pyodbc.connect('DRIVER={SQL Server};SERVER='+server+';DATABASE='+name+';Trusted_Connection=yes')
+
 cursor = conn.cursor()
 
 query1 = """
